@@ -1,0 +1,11 @@
+# OSX
+.DS_Store
+
+# Composer
+/vendor/
+
+# PHPStorm (except class maps)
+/.idea/*
+!/.idea/*.iml
+!/.idea/modules.xml
+
