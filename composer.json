@@ -9,8 +9,10 @@
             "email": "ivan.chepurnyi@ecomdev.org"
         }
     ],
-    "minimum-stability": "dev",
-    "require": {},
+    "minimum-stability": "stable",
+    "require": {
+        "ext-bcmath": ""
+    },
     "autoload": {
         "psr-4": {
             "EcomDev\\MySQLBinaryProtocol\\": "src/"

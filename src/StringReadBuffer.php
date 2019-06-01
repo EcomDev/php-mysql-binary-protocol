@@ -9,21 +9,36 @@ declare(strict_types=1);
 namespace EcomDev\MySQLBinaryProtocol;
 
 
-class InMemoryReadBuffer implements ReadBuffer
+class StringReadBuffer implements ReadBuffer
 {
-    /** @var string */
-    private $buffer = '';
 
     /** @var int */
     private $bufferSize = 0;
+
+    /** @var int */
+    private $currentPosition = 0;
+
+    /**
+     * @var int[]
+     */
+    private $currentPacket = [];
+
+    /**
+     * @var string
+     */
+    private $buffer = '';
 
     /**
      * {@inheritDoc}
      */
     public function append(string $data): void
     {
-        $this->buffer = $data;
-        $this->bufferSize = 0;
+        $this->buffer .= $data;
+        $this->bufferSize += strlen($data);
+
+        if (!$this->currentPacket) {
+            $this->initPacket();
+        }
     }
 
     /**
@@ -49,4 +64,18 @@ class InMemoryReadBuffer implements ReadBuffer
     {
         // TODO: Implement nextPacket() method.
     }
+
+    private function initPacket(): void
+    {
+        $totalLength = ord($this->buffer[0])
+            + (ord($this->buffer[1]) << 8)
+            + (ord($this->buffer[1]) << 16)
+        ;
+        $this->currentPacket = [
+
+        ];
+    }
+
+
+
 }

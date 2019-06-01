@@ -10,7 +10,7 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 use PHPUnit\Framework\TestCase;
 
-class InMemoryReadBufferTest extends TestCase
+class StringReadBufferTest extends TestCase
 {
     /**
      * @var ReadBuffer
@@ -19,13 +19,16 @@ class InMemoryReadBufferTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->buffer = new InMemoryReadBuffer();
+        $this->buffer = new StringReadBuffer();
     }
 
-    /** @test */
+    /**
+     * @test
+     *
+     */
     public function reportsIncompleteBufferWhenNotFullLengthProvided()
     {
-        $this->buffer->append("\x00\x00\x01\x00");
+        $this->buffer->append("\xFF\xFF\xFF\x00Some Payload");
 
         $this->assertFalse($this->buffer->isFullPacket());
     }

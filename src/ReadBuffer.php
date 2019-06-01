@@ -16,7 +16,7 @@ interface ReadBuffer
     public function append(string $data): void;
 
     /**
-     * Executes callable to read a fragment of the buffer
+     * Executes callable to read a fragment of the buffer by using ReadBufferFragment
      *
      * In case of IncompleteBufferException is thrown during reading,
      * method returns false and same data will be returned on the next read.
@@ -26,13 +26,14 @@ interface ReadBuffer
     public function readFragment(callable $reader): bool;
 
     /**
-     * Checks if current packet readable till the end
+     * Checks if current packet readable completely to the end
      */
     public function isFullPacket(): bool;
 
     /**
-     * Moves internal pointer to start reading next packet,
-     * ignoring any left data in current one
+     * Moves internal pointer to start reading next packet
+     *
+     * Any data that is left unread in the packet will be discarded
      */
     public function nextPacket(): void;
 }
