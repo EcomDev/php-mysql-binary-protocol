@@ -49,8 +49,17 @@ class BinaryIntegerReaderTest extends TestCase
 
     /**
      * @test
+     * @dataProvider fourByteIntegers
      */
-    public function readsSevenByteInteger()
+    public function readsFixedFourByteInteger(string $binary, int $expectedResult)
+    {
+        $this->assertEquals($expectedResult, $this->reader->readFixed($binary, 4));
+    }
+
+    /**
+     * @test
+     */
+    public function readsFixedSevenByteInteger()
     {
         $this->assertEquals(72057594037927935, $this->reader->readFixed("\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 7));
     }
@@ -59,15 +68,15 @@ class BinaryIntegerReaderTest extends TestCase
      * @test
      * @dataProvider eightByteIntegers
      */
-    public function readsEightByteIntegers(string $binary, $expectedResult)
+    public function readsFixedEightByteIntegers(string $binary, $expectedResult)
     {
         $this->assertEquals($expectedResult, $this->reader->readFixed($binary, 8));
     }
 
     /** @test */
-    public function doesNotSupportValuesHigherThan8Bytes()
+    public function fixedReaderDoesNotSupportValuesHigherThan8Bytes()
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot read integers above 8 bytes');
 
         $this->reader->readFixed("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9);
@@ -103,6 +112,17 @@ class BinaryIntegerReaderTest extends TestCase
             'two_byte_max+1' => ["\x00\x00\x01", 65536],
             'random' => ["\x68\xD6\xEF", 15717992],
             'max' => ["\xFF\xFF\xFF", 16777215],
+        ];
+    }
+
+    public function fourByteIntegers()
+    {
+        return [
+            'zero' => ["\x00\x00\x00\x00", 0],
+            'three_byte_max' => ["\xFF\xFF\xFF\x00", 16777215],
+            'three_byte_max+1' => ["\x00\x00\x00\x01", 16777216],
+            'random' => ["\xd1\x7c\xe4\x0e", 249855185],
+            'max' => ["\xFF\xFF\xFF\xFF", 4294967295],
         ];
     }
 
