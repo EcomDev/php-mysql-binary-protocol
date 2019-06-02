@@ -21,24 +21,15 @@ class BinaryIntegerReader
             return $result;
         }
 
-
-        if ($size === 8) {
-            // This is a workaround of the bug in unpack for values
-            // above signed int value for little endian
-            $low = $this->readFixed(substr($binary, 0, 4), 4);
-            $high = $this->readFixed(substr($binary, 4, 4), 4);
-
-            return hexdec(dechex($low) . dechex($high));
-        }
-
         if ($size > 8) {
             throw new \RuntimeException('Cannot read integers above 8 bytes');
         }
 
-        if ($size > 4) {
-            return current(
-                unpack('P', $binary . str_pad("\x00", 8-$size))
-            );
+
+        if ($size === 8) {
+            // This is a workaround of the bug in unpack for values
+            // above signed int value for little endian
+            return hexdec(bin2hex(strrev(substr($binary, 0, 8))));
         }
 
         for ($i = 1; $i < $size; $i ++) {

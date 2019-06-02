@@ -90,6 +90,7 @@ class BinaryIntegerReaderTest extends TestCase
             'zero' => ["\x00\x00", 0],
             'ten' => ["\x0A\x00", 10],
             'thousand' => ["\xE8\x03", 1000],
+            'random' => ["\x20\x8a", 35360],
             'max' => ["\xFF\xFF", 65535],
         ];
     }
@@ -100,6 +101,7 @@ class BinaryIntegerReaderTest extends TestCase
             'zero' => ["\x00\x00\x00", 0],
             'two_byte_max' => ["\xFF\xFF\x00", 65535],
             'two_byte_max+1' => ["\x00\x00\x01", 65536],
+            'random' => ["\x68\xD6\xEF", 15717992],
             'max' => ["\xFF\xFF\xFF", 16777215],
         ];
     }
@@ -108,7 +110,9 @@ class BinaryIntegerReaderTest extends TestCase
     {
         return [
             'seven_byte_max' => ["\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00", 72057594037927935],
+            'above_singed_eight_max' => ["\x00\x00\x00\x00\x00\x00\x00\x80", 9223372036854775808],
             'eight_byte_max' => ["\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 18446744073709551615],
+            'eight_byte_max_redundant_byte' => ["\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 18446744073709551615],
         ];
     }
 }
