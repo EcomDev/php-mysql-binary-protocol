@@ -19,7 +19,7 @@ class StringReadBufferTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->buffer = new StringReadBuffer();
+        $this->buffer = (new StringReadBufferFactory())->createWithDefaultSettings();
     }
 
     /**

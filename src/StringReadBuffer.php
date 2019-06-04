@@ -28,6 +28,14 @@ class StringReadBuffer implements ReadBuffer
      */
     private $buffer = '';
 
+    /** @var BinaryIntegerReader */
+    private $binaryIntegerReader;
+
+    public function __construct(BinaryIntegerReader $binaryIntegerReader)
+    {
+        $this->binaryIntegerReader = $binaryIntegerReader;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -54,7 +62,7 @@ class StringReadBuffer implements ReadBuffer
      */
     public function isFullPacket(): bool
     {
-        return false;
+        return strlen($this->buffer) > $this->currentPacket[0];
     }
 
     /**
@@ -67,15 +75,10 @@ class StringReadBuffer implements ReadBuffer
 
     private function initPacket(): void
     {
-        $totalLength = ord($this->buffer[0])
-            + (ord($this->buffer[1]) << 8)
-            + (ord($this->buffer[1]) << 16)
-        ;
         $this->currentPacket = [
-
+            $this->binaryIntegerReader->readFixed($this->buffer, 3)
         ];
     }
-
 
 
 }
