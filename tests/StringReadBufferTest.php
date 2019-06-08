@@ -40,4 +40,17 @@ class StringReadBufferTest extends TestCase
 
         $this->assertTrue($this->buffer->isFullPacket());
     }
+
+    /** @test */
+    public function allowsToReadSingleByteIntegerFromPayload()
+    {
+        $this->buffer->append("\x01\x00\x00\x00\xF1");
+
+        $data = [];
+        $this->buffer->readFragment(function (ReadBufferFragment $fragment) use (&$data) {
+            $data[] = $fragment->readFixedInteger(1);
+        });
+
+        $this->assertEquals([241], $data);
+    }
 }
