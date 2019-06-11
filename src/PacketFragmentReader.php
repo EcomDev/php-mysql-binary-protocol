@@ -12,7 +12,7 @@ namespace EcomDev\MySQLBinaryProtocol;
  * Reader for buffer fragments
  *
  */
-interface ReadBufferFragment
+interface PacketFragmentReader
 {
     /**
      * Reads fixed value integer

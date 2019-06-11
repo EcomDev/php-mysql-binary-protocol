@@ -9,31 +9,31 @@ declare(strict_types=1);
 namespace EcomDev\MySQLBinaryProtocol;
 
 
-class StringReadBuffer implements ReadBuffer, ReadBufferFragment
+class StringPacketReader implements PacketReader, PacketFragmentReader
 {
 
-    /** @var int */
-    private $bufferSize = 0;
-
-    /** @var int */
-    private $currentPosition = 0;
+    /**
+     * @var int
+     */
+    private $currentPacketLength;
 
     /**
-     * @var int[]
+     * @var int
      */
-    private $currentPacket = [];
-
-    /**
-     * @var string
-     */
-    private $buffer = '';
+    private $currentPacketSequence;
 
     /** @var BinaryIntegerReader */
     private $binaryIntegerReader;
 
-    public function __construct(BinaryIntegerReader $binaryIntegerReader)
+    /**
+     * @var ReadBuffer
+     */
+    private $readBuffer;
+
+    public function __construct(BinaryIntegerReader $binaryIntegerReader, ReadBuffer $readBuffer)
     {
         $this->binaryIntegerReader = $binaryIntegerReader;
+        $this->readBuffer = $readBuffer;
     }
 
     /**
@@ -41,10 +41,9 @@ class StringReadBuffer implements ReadBuffer, ReadBufferFragment
      */
     public function append(string $data): void
     {
-        $this->buffer .= $data;
-        $this->bufferSize += strlen($data);
+        $this->readBuffer->append($data);
 
-        if (!$this->currentPacket) {
+        if ($this->currentPacketLength === null) {
             $this->initPacket();
         }
     }
@@ -54,9 +53,14 @@ class StringReadBuffer implements ReadBuffer, ReadBufferFragment
      */
     public function readFragment(callable $reader): bool
     {
-        $reader($this);
+        try {
+            $reader($this);
+            $this->currentPacketLength -= $this->readBuffer->flush();
+        } catch (IncompleteBufferException $exception) {
+            return false;
+        }
 
-        return false;
+        return true;
     }
 
     /**
@@ -64,7 +68,7 @@ class StringReadBuffer implements ReadBuffer, ReadBufferFragment
      */
     public function isFullPacket(): bool
     {
-        return strlen($this->buffer) > $this->currentPacket[0];
+        return $this->readBuffer->isReadable($this->currentPacketLength);
     }
 
     /**
@@ -72,22 +76,19 @@ class StringReadBuffer implements ReadBuffer, ReadBufferFragment
      */
     public function nextPacket(): void
     {
-        // TODO: Implement nextPacket() method.
+        $this->initPacket();
     }
 
     private function initPacket(): void
     {
-        $this->currentPacket = [
-            $this->binaryIntegerReader->readFixed($this->read(3), 3),
-            $this->binaryIntegerReader->readFixed($this->read(1), 1)
-        ];
-    }
-
-    private function read(int $length): string
-    {
-        $value = substr($this->buffer, $this->currentPosition, $length);
-        $this->currentPosition += $length;
-        return $value;
+        $this->currentPacketLength = $this->binaryIntegerReader->readFixed(
+            $this->readBuffer->read(3),
+            3
+        );
+        $this->currentPacketSequence = $this->binaryIntegerReader->readFixed(
+            $this->readBuffer->read(1),
+            1
+        );
     }
 
     /**
@@ -95,7 +96,10 @@ class StringReadBuffer implements ReadBuffer, ReadBufferFragment
      */
     public function readFixedInteger(int $bytes): int
     {
-        return $this->binaryIntegerReader->readFixed($this->read($bytes), $bytes);
+        return $this->binaryIntegerReader->readFixed(
+            $this->readBuffer->read($bytes),
+            $bytes
+        );
     }
 
     /**

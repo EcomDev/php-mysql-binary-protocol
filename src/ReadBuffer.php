@@ -8,32 +8,68 @@ declare(strict_types=1);
 
 namespace EcomDev\MySQLBinaryProtocol;
 
-interface ReadBuffer
+use function strlen;
+use function substr;
+
+class ReadBuffer
 {
-    /**
-     * Appends data into buffer
-     */
-    public function append(string $data): void;
+    const ONE_MEGABYTE = 1024*1024;
 
     /**
-     * Executes callable to read a fragment of the buffer by using ReadBufferFragment
-     *
-     * In case of IncompleteBufferException is thrown during reading,
-     * method returns false and same data will be returned on the next read.
-     *
-     * The code of $reader MUST NOT catch this exception
+     * @var string
      */
-    public function readFragment(callable $reader): bool;
+    private $buffer = '';
+
+    /** @var int */
+    private $currentPosition = 0;
+
+    /** @var int */
+    private $readPosition = 0;
 
     /**
-     * Checks if current packet readable completely to the end
+     * @var int
      */
-    public function isFullPacket(): bool;
+    private $bufferSize;
 
-    /**
-     * Moves internal pointer to start reading next packet
-     *
-     * Any data that is left unread in the packet will be discarded
-     */
-    public function nextPacket(): void;
+    public function __construct(int $bufferSize = self::ONE_MEGABYTE)
+    {
+        $this->bufferSize = $bufferSize;
+    }
+
+    public function append(string $data): void
+    {
+        $this->buffer .= $data;
+    }
+
+    public function read(int $length): string
+    {
+        if (!$this->isReadable($length)) {
+            $this->currentPosition = $this->readPosition;
+            throw new IncompleteBufferException();
+        }
+
+        $data = substr($this->buffer, $this->currentPosition, $length);
+
+        $this->currentPosition += $length;
+        return $data;
+    }
+
+    public function isReadable(int $length): bool
+    {
+        return strlen($this->buffer) - $this->currentPosition >= $length;
+    }
+
+    public function flush(): int
+    {
+        $bytesRead = $this->currentPosition - $this->readPosition;
+        $this->readPosition = $this->currentPosition;
+
+        if ($this->readPosition >= $this->bufferSize) {
+            $this->buffer = substr($this->buffer, $this->readPosition);
+            $this->readPosition = 0;
+            $this->currentPosition = 0;
+        }
+
+        return $bytesRead;
+    }
 }
