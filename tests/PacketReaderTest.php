@@ -112,4 +112,28 @@ class PacketReaderTest extends TestCase
             })
         );
     }
+
+    /** @test */
+    public function allowsReadingVariousFixedIntegers()
+    {
+        $this->reader->append("\x0D\x00\x00\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x00");
+
+        $data = [];
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) use (&$data) {
+            $data[] = $fragment->readFixedInteger(2); // 512
+            $data[] = $fragment->readFixedInteger(3); // 2
+            $data[] = $fragment->readFixedInteger(8); // 67553994410557440
+        });
+
+        $this->assertEquals(
+            [
+                512,
+                2,
+                67553994410557440
+            ],
+            $data
+        );
+    }
+
+
 }
