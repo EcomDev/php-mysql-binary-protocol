@@ -9,3 +9,5 @@
 !/.idea/*.iml
 !/.idea/modules.xml
 
+# PHPUnit
+/.phpunit.result.cache
