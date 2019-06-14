@@ -134,6 +134,26 @@ class PacketReaderTest extends TestCase
             $data
         );
     }
+    
+    /** @test */
+    public function allowsReadingLengthDifferentLengthEncodedInteger()
+    {
+        $this->reader->append("\x01\x00\x00\x00\xfa\xfc\xf1\00");
 
+        $data = [];
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) use (&$data) {
+            $data[] = $fragment->readFixedInteger(2); // 512
+            $data[] = $fragment->readFixedInteger(3); // 2
+            $data[] = $fragment->readFixedInteger(8); // 67553994410557440
+        });
 
+        $this->assertEquals(
+            [
+                512,
+                2,
+                67553994410557440
+            ],
+            $data
+        );
+    }
 }
