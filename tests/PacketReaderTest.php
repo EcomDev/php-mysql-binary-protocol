@@ -136,22 +136,108 @@ class PacketReaderTest extends TestCase
     }
     
     /** @test */
-    public function allowsReadingLengthDifferentLengthEncodedInteger()
+    public function allowsReadingDifferentLengthEncodedIntegers()
     {
-        $this->reader->append("\x01\x00\x00\x00\xfa\xfc\xf1\00");
+        $this->reader->append(
+            "\x12\x00\x00\x00\xf9\xfa\xfc\xfb\00\xfd\xff\xff\xf0\xfe\xff\xff\xff\xff\xff\xff\xff\xf0"
+        );
 
         $data = [];
         $this->reader->readFragment(function (PacketFragmentReader $fragment) use (&$data) {
-            $data[] = $fragment->readFixedInteger(2); // 512
-            $data[] = $fragment->readFixedInteger(3); // 2
-            $data[] = $fragment->readFixedInteger(8); // 67553994410557440
+            $data[] = $fragment->readLengthEncodedIntegerOrNull(); // 249
+            $data[] = $fragment->readLengthEncodedIntegerOrNull(); // 250
+            $data[] = $fragment->readLengthEncodedIntegerOrNull(); // 251
+            $data[] = $fragment->readLengthEncodedIntegerOrNull(); // 15794175
+            $data[] = $fragment->readLengthEncodedIntegerOrNull(); // 17365880163140632575
         });
 
         $this->assertEquals(
             [
-                512,
-                2,
-                67553994410557440
+                249,
+                250,
+                251,
+                15794175,
+                17365880163140632575
+            ],
+            $data
+        );
+    }
+    
+    
+    /**
+     * @test
+     */
+    public function throwsInvalidBinaryDataExceptionWhenLengthEncodedIntegerDoesNotMatchExpectedFormat()
+    {
+
+        $this->reader->append(
+            "\x09\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xf0"
+        );
+
+        $this->expectException(InvalidBinaryDataException::class);
+
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) {
+            $fragment->readLengthEncodedIntegerOrNull();
+        });
+    }
+    
+    /** @test */
+    public function readsNullForLengthEncodedInteger()
+    {
+        $this->reader->append(
+            "\x01\x00\x00\x00\xfb"
+        );
+
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) {
+            $this->assertEquals(null, $fragment->readLengthEncodedIntegerOrNull());
+        });
+    }
+    
+    /** @test */
+    public function readsFixedLengthString()
+    {
+        $this->reader->append("\x18\x00\x00\x00helloworld!awesomestring");
+        $data = [];
+
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) use (&$data) {
+            $data[] = $fragment->readFixedString(5);
+            $data[] = $fragment->readFixedString(6);
+            $data[] = $fragment->readFixedString(13);
+        });
+
+        $this->assertEquals(
+            [
+                'hello',
+                'world!',
+                'awesomestring'
+            ],
+            $data
+        );
+    }
+
+    /** @test */
+    public function readsLengthEncodedString()
+    {
+        $veryLongString = str_repeat('a', 0xff);
+
+
+        $this->reader->append("\x0c\x01\x00\x00\xfc\xff\x00$veryLongString\x05hello\xfb\x0202");
+
+        $data = [];
+
+        $this->reader->readFragment(function (PacketFragmentReader $fragment) use (&$data) {
+            $data[] = $fragment->readLengthEncodedStringOrNull();
+            $data[] = $fragment->readLengthEncodedStringOrNull();
+            $data[] = $fragment->readLengthEncodedStringOrNull();
+            $data[] = $fragment->readLengthEncodedStringOrNull();
+        });
+
+        $this->assertEquals(
+            [
+                $veryLongString,
+                'hello',
+                null,
+                '02'
             ],
             $data
         );

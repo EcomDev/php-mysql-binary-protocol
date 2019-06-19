@@ -11,6 +11,11 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 class StringPacketReader implements PacketReader, PacketFragmentReader
 {
+    const INTEGER_LENGTH_MARKER = [
+        0xfc => 2,
+        0xfd => 3,
+        0xfe => 8
+    ];
 
     /**
      * @var int
@@ -94,7 +99,7 @@ class StringPacketReader implements PacketReader, PacketFragmentReader
     /**
      * {@inheritDoc}
      */
-    public function readFixedInteger(int $bytes): int
+    public function readFixedInteger(int $bytes)
     {
         return $this->binaryIntegerReader->readFixed(
             $this->readBuffer->read($bytes),
@@ -107,9 +112,23 @@ class StringPacketReader implements PacketReader, PacketFragmentReader
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
      */
-    public function readLengthEncodedInteger(): int
+    public function readLengthEncodedIntegerOrNull()
     {
-        // TODO: Implement readLengthEncodedInteger() method.
+        $value = $this->readFixedInteger(1);
+
+        if ($value === 0xfb) {
+            return null;
+        }
+
+        if ($value < 251) {
+            return $value;
+        }
+
+        if (!isset(self::INTEGER_LENGTH_MARKER[$value])) {
+            throw new InvalidBinaryDataException();
+        }
+
+        return $this->readFixedInteger(self::INTEGER_LENGTH_MARKER[$value]);
     }
 
     /**
@@ -119,7 +138,7 @@ class StringPacketReader implements PacketReader, PacketFragmentReader
      */
     public function readFixedString(int $length): string
     {
-        // TODO: Implement readFixedString() method.
+        return $this->readBuffer->read($length);
     }
 
     /**
@@ -129,7 +148,13 @@ class StringPacketReader implements PacketReader, PacketFragmentReader
      */
     public function readLengthEncodedStringOrNull(): ?string
     {
-        // TODO: Implement readLengthEncodedStringOrNull() method.
+        $stringLength = $this->readLengthEncodedIntegerOrNull();
+
+        if ($stringLength === null) {
+            return null;
+        }
+
+        return $this->readFixedString($stringLength);
     }
 
     /**

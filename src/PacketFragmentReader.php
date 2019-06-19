@@ -18,15 +18,17 @@ interface PacketFragmentReader
      * Reads fixed value integer
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
+     * @return int|float
      */
-    public function readFixedInteger(int $bytes): int;
+    public function readFixedInteger(int $bytes);
 
     /**
      * Reads length encoded integer
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
+     * @return int|float
      */
-    public function readLengthEncodedInteger(): int;
+    public function readLengthEncodedIntegerOrNull();
 
     /**
      * Reads string of specified length from buffer
