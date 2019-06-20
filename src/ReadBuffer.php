@@ -10,6 +10,7 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 use function strlen;
 use function substr;
+use function strpos;
 
 class ReadBuffer
 {
@@ -21,10 +22,10 @@ class ReadBuffer
     private $buffer = '';
 
     /** @var int */
-    private $currentPosition = 0;
+    private $currentBufferOffset = 0;
 
     /** @var int */
-    private $readPosition = 0;
+    private $readBufferOffset = 0;
 
     /**
      * @var int
@@ -44,32 +45,54 @@ class ReadBuffer
     public function read(int $length): string
     {
         if (!$this->isReadable($length)) {
-            $this->currentPosition = $this->readPosition;
+            $this->currentBufferOffset = $this->readBufferOffset;
             throw new IncompleteBufferException();
         }
 
-        $data = substr($this->buffer, $this->currentPosition, $length);
+        $data = substr($this->buffer, $this->currentBufferOffset, $length);
 
-        $this->currentPosition += $length;
+        $this->currentBufferOffset += $length;
         return $data;
     }
 
     public function isReadable(int $length): bool
     {
-        return strlen($this->buffer) - $this->currentPosition >= $length;
+        return strlen($this->buffer) - $this->currentBufferOffset >= $length;
     }
 
     public function flush(): int
     {
-        $bytesRead = $this->currentPosition - $this->readPosition;
-        $this->readPosition = $this->currentPosition;
+        $bytesRead = $this->currentPosition();
 
-        if ($this->readPosition >= $this->bufferSize) {
-            $this->buffer = substr($this->buffer, $this->readPosition);
-            $this->readPosition = 0;
-            $this->currentPosition = 0;
+        $this->readBufferOffset = $this->currentBufferOffset;
+
+        if ($this->readBufferOffset >= $this->bufferSize) {
+            $this->buffer = substr($this->buffer, $this->readBufferOffset);
+            $this->readBufferOffset = 0;
+            $this->currentBufferOffset = 0;
         }
 
         return $bytesRead;
+    }
+
+    public function scan(string $pattern): int
+    {
+        $position = strpos($this->buffer, $pattern, $this->currentBufferOffset);
+
+        return $position === false ? -1 : ($position - $this->currentBufferOffset) + 1;
+    }
+
+    public function advance(int $length): void
+    {
+        if (!$this->isReadable($length)) {
+            throw new IncompleteBufferException();
+        }
+
+        $this->currentBufferOffset += $length;
+    }
+
+    public function currentPosition(): int
+    {
+        return $this->currentBufferOffset - $this->readBufferOffset;
     }
 }

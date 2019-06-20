@@ -11,8 +11,8 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 class DefaultPacketReaderFactory
 {
-    public function createWithDefaultSettings(): StringPacketReader
+    public function createWithDefaultSettings(): UncompressedPacketReader
     {
-        return new StringPacketReader(new BinaryIntegerReader(), new ReadBuffer());
+        return new UncompressedPacketReader(new BinaryIntegerReader(), new ReadBuffer());
     }
 }

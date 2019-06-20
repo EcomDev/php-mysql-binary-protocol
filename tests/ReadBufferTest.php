@@ -190,5 +190,102 @@ class ReadBufferTest extends TestCase
 
         $this->assertEquals(0, $this->readBuffer->flush());
     }
+    
+    /** @test */
+    public function returnsLengthOfReadInOrderToReadDataUpToThisCharacter()
+    {
+        $this->readBuffer->append('some:data');
 
+        $this->assertEquals(5, $this->readBuffer->scan(':'));
+    }
+    
+    /** @test */
+    public function returnsNegativeIndexWhenNoMatchFoundForScan()
+    {
+        $this->readBuffer->append('some data without character');
+
+        $this->assertEquals(-1, $this->readBuffer->scan(':'));
+    }
+
+    /** @test */
+    public function returnsLengthOfReadEvenIfCharacterForSearchIsAFirstOneInBuffer()
+    {
+        $this->readBuffer->append(':some other data');
+
+        $this->assertEquals(1, $this->readBuffer->scan(':'));
+    }
+    
+    /** @test */
+    public function returnsLengthOfRequiredReadForTheNextCharacterOccurrence()
+    {
+        $this->readBuffer->append('some:other:data');
+        $this->readBuffer->read(5);
+
+        $this->assertEquals(6, $this->readBuffer->scan(':'));
+    }
+    
+    /** @test */
+    public function advancesBufferPositionFromBeginningOfBuffer()
+    {
+        $this->readBuffer->append('some very long data');
+
+        $this->readBuffer->advance(10);
+
+        $this->assertEquals('long data', $this->readBuffer->read(9));
+    }
+    
+    /** @test */
+    public function advancesBufferPositionAfterRead()
+    {
+        $this->readBuffer->append('some other nice data after advance');
+        $this->readBuffer->read(10);
+        $this->readBuffer->advance(11);
+
+        $this->assertEquals('after advance', $this->readBuffer->read(13));
+    }
+
+    /** @test */
+    public function reportsIncompleteBufferWhenAdvanceIsLargerThanCurrentData()
+    {
+        $this->readBuffer->append('some data');
+
+        $this->readBuffer->read(5);
+
+        $this->expectException(IncompleteBufferException::class);
+
+        $this->readBuffer->advance(5);
+    }
+
+
+    /** @test */
+    public function defaultReadPositionInBufferIsZero()
+    {
+        $this->assertEquals(0, $this->readBuffer->currentPosition());
+    }
+    
+    /** @test */
+    public function currentPositionIsMovedWithNumberOfReadBytes()
+    {
+        $this->readBuffer->append('Some very long string data');
+
+        $this->readBuffer->read(4);
+        $this->readBuffer->read(6);
+
+        $this->assertEquals(10, $this->readBuffer->currentPosition());
+    }
+    
+    /** @test */
+    public function currentPositionIsRelativeToFlushedReadData()
+    {
+        $this->readBuffer->append('Some very long string data');
+
+        $this->readBuffer->read(10);
+
+        $this->readBuffer->flush();
+
+        $this->readBuffer->read(3);
+
+        $this->assertEquals(3, $this->readBuffer->currentPosition());
+
+    }
 }
