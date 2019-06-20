@@ -82,15 +82,6 @@ class ReadBuffer
         return $position === false ? -1 : ($position - $this->currentBufferOffset) + 1;
     }
 
-    public function advance(int $length): void
-    {
-        if (!$this->isReadable($length)) {
-            throw new IncompleteBufferException();
-        }
-
-        $this->currentBufferOffset += $length;
-    }
-
     public function currentPosition(): int
     {
         return $this->currentBufferOffset - $this->readBufferOffset;

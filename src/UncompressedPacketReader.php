@@ -152,7 +152,7 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
         }
 
         $string = $this->readBuffer->read($nullPosition - 1);
-        $this->readBuffer->advance(1);
+        $this->readBuffer->read(1);
         return $string;
     }
 

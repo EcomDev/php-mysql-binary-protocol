@@ -223,39 +223,6 @@ class ReadBufferTest extends TestCase
 
         $this->assertEquals(6, $this->readBuffer->scan(':'));
     }
-    
-    /** @test */
-    public function advancesBufferPositionFromBeginningOfBuffer()
-    {
-        $this->readBuffer->append('some very long data');
-
-        $this->readBuffer->advance(10);
-
-        $this->assertEquals('long data', $this->readBuffer->read(9));
-    }
-    
-    /** @test */
-    public function advancesBufferPositionAfterRead()
-    {
-        $this->readBuffer->append('some other nice data after advance');
-        $this->readBuffer->read(10);
-        $this->readBuffer->advance(11);
-
-        $this->assertEquals('after advance', $this->readBuffer->read(13));
-    }
-
-    /** @test */
-    public function reportsIncompleteBufferWhenAdvanceIsLargerThanCurrentData()
-    {
-        $this->readBuffer->append('some data');
-
-        $this->readBuffer->read(5);
-
-        $this->expectException(IncompleteBufferException::class);
-
-        $this->readBuffer->advance(5);
-    }
-
 
     /** @test */
     public function defaultReadPositionInBufferIsZero()
