@@ -30,7 +30,7 @@ class HandshakeParser
         $this->frameReceiver = $frameReceiver;
     }
 
-    public function __invoke(PacketPayloadReader $reader)
+    public function __invoke(PayloadReader $reader)
     {
         $reader->readFixedInteger(1);
 

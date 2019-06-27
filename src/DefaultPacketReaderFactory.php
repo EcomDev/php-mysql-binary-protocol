@@ -13,6 +13,10 @@ class DefaultPacketReaderFactory
 {
     public function createWithDefaultSettings(): UncompressedPacketReader
     {
-        return new UncompressedPacketReader(new BinaryIntegerReader(), new ReadBuffer());
+        return new UncompressedPacketReader(
+            new BinaryIntegerReader(),
+            new ReadBuffer(),
+            new BufferPayloadReaderFactory()
+        );
     }
 }

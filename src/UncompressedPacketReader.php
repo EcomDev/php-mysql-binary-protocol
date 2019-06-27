@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace EcomDev\MySQLBinaryProtocol;
 
 
-class UncompressedPacketReader implements PacketReader, PacketPayloadReader
+class UncompressedPacketReader implements PacketReader
 {
     private const INTEGER_LENGTH_MARKER = [
         0xfc => 2,
@@ -30,13 +30,16 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
      * Registry of packets
      *
      * [
-     *   [lengthOfPacket, sequence, remainingToReadLength],
-     *   [lengthOfPacket, sequence, remainingToReadLength],
-     *   [lengthOfPacket, sequence, remainingToReadLength],
+     *   [lengthOfPacket, sequence],
+     *   [lengthOfPacket, sequence],
+     *   [lengthOfPacket, sequence],
      * ]
      * @var array
      */
     private $packets = [];
+
+    /** @var int[] */
+    private $remainingPacketLength = [];
 
     /** @var BinaryIntegerReader */
     private $binaryIntegerReader;
@@ -45,11 +48,20 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
      * @var ReadBuffer
      */
     private $readBuffer;
+    /**
+     * @var BufferPayloadReaderFactory
+     */
+    private $payloadReaderFactory;
 
-    public function __construct(BinaryIntegerReader $binaryIntegerReader, ReadBuffer $readBuffer)
+    public function __construct(
+        BinaryIntegerReader $binaryIntegerReader,
+        ReadBuffer $readBuffer,
+        BufferPayloadReaderFactory $payloadReaderFactory
+    )
     {
         $this->binaryIntegerReader = $binaryIntegerReader;
         $this->readBuffer = $readBuffer;
+        $this->payloadReaderFactory = $payloadReaderFactory;
     }
 
     /**
@@ -68,7 +80,12 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
     public function readPayload(callable $reader): bool
     {
         try {
-            $reader($this, $this->packets[0][self::LENGTH], $this->packets[0][self::SEQUENCE]);
+            $reader(
+                $this->payloadReaderFactory->create($this->readBuffer, $this->remainingPacketLength),
+                $this->packets[0][self::LENGTH],
+                $this->packets[0][self::SEQUENCE]
+            );
+
             $this->advancePacketLength($this->readBuffer->flush());
         } catch (IncompleteBufferException $exception) {
             return false;
@@ -77,96 +94,6 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function readFixedInteger(int $bytes)
-    {
-        return $this->binaryIntegerReader->readFixed(
-            $this->readBuffer->read($bytes),
-            $bytes
-        );
-    }
-
-    /**
-     * Reads length encoded integer
-     *
-     * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
-     */
-    public function readLengthEncodedIntegerOrNull()
-    {
-        $value = $this->readFixedInteger(1);
-
-        if ($value === 0xfb) {
-            return null;
-        }
-
-        if ($value < 251) {
-            return $value;
-        }
-
-        if (!isset(self::INTEGER_LENGTH_MARKER[$value])) {
-            throw new InvalidBinaryDataException();
-        }
-
-        return $this->readFixedInteger(self::INTEGER_LENGTH_MARKER[$value]);
-    }
-
-    /**
-     * Reads string of specified length from buffer
-     *
-     * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
-     */
-    public function readFixedString(int $length): string
-    {
-        return $this->readBuffer->read($length);
-    }
-
-    /**
-     * Reads string that is has length as the first part of the fragment
-     *
-     * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
-     */
-    public function readLengthEncodedStringOrNull(): ?string
-    {
-        $stringLength = $this->readLengthEncodedIntegerOrNull();
-
-        if ($stringLength === null) {
-            return null;
-        }
-
-        return $this->readFixedString($stringLength);
-    }
-
-    /**
-     * Reads string till x00 character
-     *
-     * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
-     */
-    public function readNullTerminatedString(): string
-    {
-        $nullPosition = $this->readBuffer->scan("\x00");
-
-        if ($nullPosition === -1) {
-            throw new IncompleteBufferException();
-        }
-
-        $string = $this->readBuffer->read($nullPosition - 1);
-        $this->readBuffer->read(1);
-        return $string;
-    }
-
-    /**
-     * Reads string that is rest of payload
-     *
-     * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
-     */
-    public function readRestOfPacketString(): string
-    {
-        return $this->readBuffer->read(
-            $this->remainingPacketLengthToRead()
-        );
-    }
 
     private function registerPacket(string $dataToParse): string
     {
@@ -184,40 +111,27 @@ class UncompressedPacketReader implements PacketReader, PacketPayloadReader
 
         $this->packets[] = [
             self::LENGTH => $this->awaitedPacketLength,
-            self::SEQUENCE => $this->binaryIntegerReader->readFixed($dataToParse[3], 1),
-            self::UNREAD_LENGTH => $this->awaitedPacketLength
+            self::SEQUENCE => $this->binaryIntegerReader->readFixed($dataToParse[3], 1)
         ];
+
+        $this->remainingPacketLength[] = $this->awaitedPacketLength;
 
         return substr($dataToParse, 4);
     }
 
 
-    private function remainingPacketLengthToRead(): int
-    {
-        $currentBufferPosition = $this->readBuffer->currentPosition();
-
-        $currentPacketIndex = 0;
-        while ($this->packets[$currentPacketIndex][self::UNREAD_LENGTH] <= $currentBufferPosition) {
-            $currentBufferPosition -= $this->packets[$currentPacketIndex][self::UNREAD_LENGTH];
-            $currentPacketIndex++;
-        }
-
-        return $this->packets[$currentPacketIndex][self::UNREAD_LENGTH] - $currentBufferPosition;
-    }
-
     private function advancePacketLength(int $readLength): void
     {
-
-        while ($this->packets[0][self::UNREAD_LENGTH] <= $readLength) {
-            $readLength -= $this->packets[0][self::UNREAD_LENGTH];
+        while ($this->remainingPacketLength[0] <= $readLength) {
+            $readLength -= $this->remainingPacketLength[0];
             array_shift($this->packets);
+            array_shift($this->remainingPacketLength);
 
             if (!$this->packets) {
                 return;
             }
         }
 
-
-        $this->packets[0][self::UNREAD_LENGTH] -= $readLength;
+        $this->remainingPacketLength[0] -= $readLength;
     }
 }
