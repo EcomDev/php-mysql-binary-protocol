@@ -19,6 +19,8 @@ interface PayloadReader
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
      * @return int|float
+     *
+     * @throws IncompleteBufferException
      */
     public function readFixedInteger(int $bytes);
 
@@ -27,6 +29,8 @@ interface PayloadReader
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_integers.html
      * @return int|float
+     *
+     * @throws IncompleteBufferException
      */
     public function readLengthEncodedIntegerOrNull();
 
@@ -34,6 +38,9 @@ interface PayloadReader
      * Reads string of specified length from buffer
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
+     *
+     *
+     * @throws IncompleteBufferException
      */
     public function readFixedString(int $length): string;
 
@@ -41,6 +48,8 @@ interface PayloadReader
      * Reads string that is has length as the first part of the fragment
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
+     *
+     * @throws IncompleteBufferException
      */
     public function readLengthEncodedStringOrNull(): ?string;
 
@@ -48,6 +57,8 @@ interface PayloadReader
      * Reads string till x00 character
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
+     *
+     * @throws IncompleteBufferException
      */
     public function readNullTerminatedString(): string;
 
@@ -56,6 +67,8 @@ interface PayloadReader
      * Reads string that is rest of payload
      *
      * @see https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_dt_strings.html
+     *
+     * @throws IncompleteBufferException
      */
     public function readRestOfPacketString(): string;
 }
