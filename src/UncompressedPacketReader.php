@@ -11,13 +11,6 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 class UncompressedPacketReader implements PacketReader
 {
-    private const INTEGER_LENGTH_MARKER = [
-        0xfc => 2,
-        0xfd => 3,
-        0xfe => 8
-    ];
-
-    private const UNREAD_LENGTH = 2;
     private const LENGTH = 0;
     private const SEQUENCE = 1;
 
