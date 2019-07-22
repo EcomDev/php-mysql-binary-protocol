@@ -312,6 +312,6 @@ class BufferPayloadReaderTest extends TestCase
         $buffer = new ReadBuffer();
         $buffer->append($payload);
         $packetLength = $packetLength ?: [strlen($payload)];
-        return $this->payloadReaderFactory->create($buffer, $packetLength);
+        return $this->payloadReaderFactory->createFromBuffer($buffer, $packetLength);
     }
 }

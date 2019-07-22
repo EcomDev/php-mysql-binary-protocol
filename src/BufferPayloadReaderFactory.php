@@ -11,8 +11,26 @@ namespace EcomDev\MySQLBinaryProtocol;
 
 class BufferPayloadReaderFactory
 {
-    public function create(ReadBuffer $buffer, array $unreadPacketLength): BufferPayloadReader
+    /**
+     * @var BinaryIntegerReader
+     */
+    private $binaryIntegerReader;
+
+    public function __construct(BinaryIntegerReader $binaryIntegerReader = null)
     {
-        return new BufferPayloadReader($buffer, $unreadPacketLength, new BinaryIntegerReader());
+        $this->binaryIntegerReader = $binaryIntegerReader ?? new BinaryIntegerReader();
+    }
+
+    public function createFromBuffer(ReadBuffer $buffer, array $unreadPacketLength): BufferPayloadReader
+    {
+        return new BufferPayloadReader($buffer, $unreadPacketLength, $this->binaryIntegerReader);
+    }
+
+    public function createFromString(string $data): BufferPayloadReader
+    {
+        $buffer = new ReadBuffer();
+        $buffer->append($data);
+
+        return $this->createFromBuffer($buffer, [strlen($data)]);
     }
 }

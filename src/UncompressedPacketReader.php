@@ -74,7 +74,7 @@ class UncompressedPacketReader implements PacketReader
     {
         try {
             $reader(
-                $this->payloadReaderFactory->create($this->readBuffer, $this->remainingPacketLength),
+                $this->payloadReaderFactory->createFromBuffer($this->readBuffer, $this->remainingPacketLength),
                 $this->packets[0][self::LENGTH],
                 $this->packets[0][self::SEQUENCE]
             );
